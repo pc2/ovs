@@ -10,7 +10,8 @@ vswitchd_ovs_vswitchd_SOURCES = \
 	vswitchd/system-stats.c \
 	vswitchd/system-stats.h \
 	vswitchd/xenserver.c \
-	vswitchd/xenserver.h
+	vswitchd/xenserver.h \
+	vswitchd/dummy_cpp.cpp
 vswitchd_ovs_vswitchd_LDADD = \
 	ofproto/libofproto.la \
 	lib/libsflow.la \

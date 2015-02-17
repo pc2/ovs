@@ -1,6 +1,11 @@
 /*
  * Copyright (c) 2009, 2010, 2011, 2012, 2013, 2014 Nicira, Inc.
  *
+ * Modifications for the NetFPGA 10G UPB OpenFlow Switch project:
+ *  Copyright (c) 2014, 2015 Jörg Niklas, osjsn@niklasfamily.de
+ *  Project Group "On-the-Fly Networking for Big Data"
+ *  Computer Engineering Group, University of Paderborn
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at:
@@ -148,6 +153,8 @@ struct ofproto {
     struct hmap groups OVS_GUARDED;   /* Contains "struct ofgroup"s. */
     uint32_t n_groups[4] OVS_GUARDED; /* # of existing groups of each type. */
     struct ofputil_group_features ogf;
+
+    uint32_t upb_dataplane_id;
 };
 
 void ofproto_init_tables(struct ofproto *, int n_tables);
@@ -395,6 +402,8 @@ struct rule {
 
     /* Must hold 'mutex' for both read/write, 'ofproto_mutex' not needed. */
     long long int modified OVS_GUARDED; /* Time of last modification. */
+
+    uint64_t upb_flow_ref;
 };
 
 void ofproto_rule_ref(struct rule *);

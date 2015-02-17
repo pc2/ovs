@@ -1,3 +1,20 @@
+                 Open vSwitch version with NetFGPA 10G acceleration
+
+What is the NetFPGA 10G UPB OpenFlow Switch?
+--------------------------------------------
+
+This version of Open vSwitch uses the NetFPGA 10G card as the data plane. See
+
+https://github.com/pc2/NetFPGA-10G-UPB-OpenFlow.git
+
+for details.
+
+
+
+
+
+Original Open vSwitch README file:
+
                  Open vSwitch <http://openvswitch.org>
 
 What is Open vSwitch?

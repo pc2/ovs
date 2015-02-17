@@ -47,11 +47,13 @@ ofproto_libofproto_la_SOURCES = \
 	ofproto/tunnel.c \
 	ofproto/tunnel.h \
 	ofproto/bundles.c \
-	ofproto/bundles.h
+	ofproto/bundles.h \
+	ofproto/upb_netfpga.c \
+	ofproto/upb_netfpga.h
 
 ofproto_libofproto_la_CPPFLAGS = $(AM_CPPFLAGS)
-ofproto_libofproto_la_CFLAGS = $(AM_CFLAGS)
-ofproto_libofproto_la_LIBADD = lib/libsflow.la
+ofproto_libofproto_la_CFLAGS = $(AM_CFLAGS) -I${SDN_DATAPLANE_DIR}/include
+ofproto_libofproto_la_LIBADD = lib/libsflow.la ${SDN_DATAPLANE_DIR}/lib/libsdn_dataplane_1.00.la
 if WIN32
 ofproto_libofproto_la_LIBADD += ${PTHREAD_LIBS}
 endif

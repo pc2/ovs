@@ -56,6 +56,7 @@ CLEANFILES =
 CLEAN_LOCAL =
 DISTCLEANFILES =
 PYCOV_CLEAN_FILES = build-aux/check-structs,cover
+UPB_STUFF_IGNORE := $(shell find $(top_srcdir)/upb -name '*')
 EXTRA_DIST = \
 	BUILD.Windows \
 	CONTRIBUTING \
@@ -86,7 +87,8 @@ EXTRA_DIST = \
 	build-aux/sodepends.pl \
 	build-aux/soexpand.pl \
 	$(MAN_FRAGMENTS) \
-	$(MAN_ROOTS)
+	$(MAN_ROOTS) \
+	$(UPB_STUFF_IGNORE)
 bin_PROGRAMS =
 sbin_PROGRAMS =
 bin_SCRIPTS =

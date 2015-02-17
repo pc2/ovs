@@ -1,6 +1,11 @@
 /*
  * Copyright (c) 2009, 2010, 2011, 2012, 2013, 2014, 2015 Nicira, Inc.
  *
+ * Modifications for the NetFPGA 10G UPB OpenFlow Switch project:
+ *  Copyright (c) 2014, 2015 Jörg Niklas, osjsn@niklasfamily.de
+ *  Project Group "On-the-Fly Networking for Big Data"
+ *  Computer Engineering Group, University of Paderborn
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at:
@@ -68,6 +73,7 @@
 #include "unixctl.h"
 #include "vlan-bitmap.h"
 #include "vlog.h"
+#include "upb_netfpga.h"
 
 VLOG_DEFINE_THIS_MODULE(ofproto_dpif);
 
@@ -3091,6 +3097,7 @@ rule_expire(struct rule_dpif *rule)
     uint16_t hard_timeout, idle_timeout;
     long long int now = time_msec();
     int reason = -1;
+    uint64_t netfpga_packets, netfpga_bytes, netfpga_ms_since_last_packet;
 
     ovs_assert(!rule->up.pending);
 
@@ -3117,9 +3124,17 @@ rule_expire(struct rule_dpif *rule)
         used = rule->stats.used;
         ovs_mutex_unlock(&rule->stats_mutex);
 
-        if (now > used + idle_timeout * 1000) {
-            reason = OFPRR_IDLE_TIMEOUT;
-        }
+        upb_ovs_support_get_flow_statistics(&rule->up, &netfpga_packets, &netfpga_bytes, &netfpga_ms_since_last_packet);
+
+		if (now > used + idle_timeout * 1000) {
+
+			if (
+					netfpga_ms_since_last_packet == (uint64_t)-1			// no valid time from the netfpga...
+				||	netfpga_ms_since_last_packet > idle_timeout * 1000		// ...or idle time elapsed
+			) {
+				reason = OFPRR_IDLE_TIMEOUT;
+			}
+		}
     }
 
     if (reason >= 0) {
@@ -3490,11 +3505,21 @@ rule_get_stats(struct rule *rule_, uint64_t *packets, uint64_t *bytes,
                long long int *used)
 {
     struct rule_dpif *rule = rule_dpif_cast(rule_);
+    uint64_t netfpga_packets, netfpga_bytes, netfpga_ms_since_last_packet;
+    long long int netfpga_used;
+
+    upb_ovs_support_get_flow_statistics(&rule->up, &netfpga_packets, &netfpga_bytes, &netfpga_ms_since_last_packet);
+
+    if (netfpga_ms_since_last_packet != (uint64_t)-1) {
+    	netfpga_used = time_msec() - netfpga_ms_since_last_packet;
+    } else {
+    	netfpga_used = 0;
+    }
 
     ovs_mutex_lock(&rule->stats_mutex);
-    *packets = rule->stats.n_packets;
-    *bytes = rule->stats.n_bytes;
-    *used = rule->stats.used;
+    *packets = rule->stats.n_packets + netfpga_packets;
+    *bytes = rule->stats.n_bytes + netfpga_bytes;
+    *used = MAX(netfpga_used, rule->stats.used);
     ovs_mutex_unlock(&rule->stats_mutex);
 }
 

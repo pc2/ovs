@@ -2,6 +2,11 @@
  * Copyright (c) 2009, 2010, 2011, 2012, 2013, 2014 Nicira, Inc.
  * Copyright (c) 2010 Jean Tourrilhes - HP-Labs.
  *
+ * Modifications for the NetFPGA 10G UPB OpenFlow Switch project:
+ *  Copyright (c) 2014, 2015 Jörg Niklas, osjsn@niklasfamily.de
+ *  Project Group "On-the-Fly Networking for Big Data"
+ *  Computer Engineering Group, University of Paderborn
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at:
@@ -59,6 +64,8 @@
 #include "unixctl.h"
 #include "vlog.h"
 #include "bundles.h"
+#include "upb_netfpga.h"
+#include <sdn_dp_cwrapper.h>
 
 VLOG_DEFINE_THIS_MODULE(ofproto);
 
@@ -342,6 +349,8 @@ ofproto_init(const struct shash *iface_hints)
     struct shash_node *node;
     size_t i;
 
+    upb_ovs_support_construct();
+
     ofproto_class_register(&ofproto_dpif_class);
 
     /* Make a local copy, since we don't own 'iface_hints' elements. */
@@ -360,6 +369,8 @@ ofproto_init(const struct shash *iface_hints)
     for (i = 0; i < n_ofproto_classes; i++) {
         ofproto_classes[i]->init(&init_ofp_ports);
     }
+
+    upb_init();
 }
 
 /* 'type' should be a normalized datapath type, as returned by
@@ -500,6 +511,7 @@ ofproto_create(const char *datapath_name, const char *datapath_type,
     /* Initialize. */
     ovs_mutex_lock(&ofproto_mutex);
     memset(ofproto, 0, sizeof *ofproto);
+    ofproto->upb_dataplane_id = (uint32_t)-1; // there is not yet an id to a NetFPGA data plane known
     ofproto->ofproto_class = class;
     ofproto->name = xstrdup(datapath_name);
     ofproto->type = xstrdup(datapath_type);
@@ -1781,6 +1793,12 @@ ofproto_port_add(struct ofproto *ofproto, struct netdev *netdev,
 {
     ofp_port_t ofp_port = ofp_portp ? *ofp_portp : OFPP_NONE;
     int error;
+
+    error = upb_ovs_support_add_port(ofproto, netdev);
+    if (error) {
+    	*ofp_portp = OFPP_NONE;
+    	return error;
+    }
 
     error = ofproto->ofproto_class->port_add(ofproto, netdev);
     if (!error) {
@@ -4060,6 +4078,7 @@ add_flow(struct ofproto *ofproto, struct ofconn *ofconn,
     }
 
     /* Initialize base state. */
+    rule->upb_flow_ref = (uint64_t)-1;
     *CONST_CAST(struct ofproto **, &rule->ofproto) = ofproto;
     cls_rule_move(CONST_CAST(struct cls_rule *, &rule->cr), &cr);
     ovs_refcount_init(&rule->ref_count);
@@ -4090,6 +4109,8 @@ add_flow(struct ofproto *ofproto, struct ofconn *ofconn,
         ofproto_rule_destroy__(rule);
         return error;
     }
+
+    upb_ovs_support_add_flow(ofproto, table_id, fm, rule);
 
     /* Insert rule. */
     do_add_flow(ofproto, ofconn, request, fm->buffer_id, rule);
@@ -4187,6 +4208,8 @@ modify_flows__(struct ofproto *ofproto, struct ofconn *ofconn,
                                               fm->ofpacts, fm->ofpacts_len);
 
             ovsrcu_set(&rule->actions, new_actions);
+
+            upb_ovs_support_modify_flow(ofproto, rule, reset_counters);
 
             rule->ofproto->ofproto_class->rule_modify_actions(rule,
                                                               reset_counters);
@@ -6889,6 +6912,8 @@ static void
 oftable_remove_rule(struct rule *rule)
     OVS_REQUIRES(ofproto_mutex)
 {
+	upb_ovs_support_delete_flow(rule);
+
     oftable_remove_rule__(rule->ofproto, rule);
 }
 

@@ -1,0 +1,56 @@
+UPB NetFPGA 10G Project
+
+
+Compilation and installation of OpenVSwitch 2.3 on Ubuntu 14.04 LTS:
+
+1) Fetch sources
+git clone https://github.com/pc2/ovs.git
+git checkout upb-2.3
+
+2) Check dependencies
+
+"cd" into the source root directory
+dpkg-checkbuilddeps
+
+If no message appears, all dependencies are met. Otherwise install missing stuff.
+
+3) Build and create .deb packages
+
+DEB_BUILD_OPTIONS='parallel=8' fakeroot debian/rules binary
+
+If nothing fails, you will find the .deb packages in ./..
+
+Cleaning the debian directory: fakeroot debian/rules clean
+
+4) Install packages
+
+Package dkms is required: apt-get insall dkms
+
+dpkg -i openvswitch-common_2.3.1-1_amd64.deb openvswitch-switch_2.3.1-1_amd64.deb openvswitch-datapath-dkms_2.3.1-1_all.deb
+
+A OpenVSwitch database is automatically initialized.
+A service is automatically installed.
+
+For removing:
+
+dpkg -r openvswitch-datapath-dkms openvswitch-switch openvswitch-common
+
+
+
+
+
+
+
+Some further hints:
+
+Load POX OpenFlow controller:
+
+./pox.py openflow.of_01 --port=6633 log.level --DEBUG forwarding.l2_learning
+
+
+Run configure to get a makefile (for development):
+
+./configure --prefix=/usr --localstatedir=/var --enable-ssl --sysconfdir=/etc CFLAGS="-g -O0"
+
+
+
